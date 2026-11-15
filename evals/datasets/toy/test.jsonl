@@ -1,0 +1,5 @@
+{"id": "test-001", "input": "vendor portal", "expected": "VENDOR PORTAL"}
+{"id": "test-002", "input": "three way match", "expected": "THREE WAY MATCH"}
+{"id": "test-003", "input": "approval required", "expected": "APPROVAL REQUIRED"}
+{"id": "test-004", "input": "late fee waived", "expected": "LATE FEE WAIVED"}
+{"id": "test-005", "input": "exception queue", "expected": "EXCEPTION QUEUE"}

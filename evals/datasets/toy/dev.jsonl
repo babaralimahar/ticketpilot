@@ -1,0 +1,10 @@
+{"id": "dev-001", "input": "hello world", "expected": "HELLO WORLD"}
+{"id": "dev-002", "input": "invoice number 42", "expected": "INVOICE NUMBER 42"}
+{"id": "dev-003", "input": "the quick brown fox", "expected": "THE QUICK BROWN FOX"}
+{"id": "dev-004", "input": "pay on receipt", "expected": "PAY ON RECEIPT"}
+{"id": "dev-005", "input": "net 30 days", "expected": "NET 30 DAYS"}
+{"id": "dev-006", "input": "refund approved", "expected": "REFUND APPROVED"}
+{"id": "dev-007", "input": "po matched", "expected": "PO MATCHED"}
+{"id": "dev-008", "input": "café crème", "expected": "CAFÉ CRÈME"}
+{"id": "dev-009", "input": "tax: 8.5%", "expected": "TAX: 8.5%"}
+{"id": "dev-010", "input": "multi\nline text", "expected": "MULTI\nLINE TEXT"}

@@ -1,0 +1,7 @@
+# Refund and order-change policy (synthetic). The agent never decides these: the policy engine
+# (src/ticketpilot/domain/policy.py) does, using order data fetched by code, not model claims.
+auto_refund_limit_usd: 50        # refunds at or under this are auto-approved; above need a supervisor
+return_window_days: 30           # change-of-mind returns: within 30 days of delivery, not final sale
+damage_claim_window_days: 30     # damaged items: within 30 days of delivery (final sale included)
+lost_after_days_past_eta: 7      # in transit this long past the ETA counts as not received
+max_actions_per_run: 2           # excessive-agency guard

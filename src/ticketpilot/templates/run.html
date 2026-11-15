@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Run {{ r.id[-8:] }} · TicketPilot{% endblock %}
+{% block body %}
+<p><a href="/ui">← Tickets</a></p>
+<h1>Run {{ r.id[-8:] }}
+  <span {% if r.status in ('running', 'awaiting_approval') %}hx-get="/ui/runs/{{ r.id }}/status" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}
+        class="pill s-{{ 'approved' if r.status == 'done' else ('needs_review' if r.status in ('awaiting_approval', 'running') else 'rejected') }}">{{ r.status.replace('_', ' ') }}</span></h1>
+<div class="panel">
+  <p style="margin-top:0"><b>{{ r.customer_email }}</b> · {{ r.subject }}</p>
+  <p class="muted">{{ r.body }}</p>
+</div>
+<h2>Outcome</h2>
+<div class="panel">
+  {% set s = r.summary or {} %}
+  <p><b>Proposed:</b> <code>{{ (s.proposal or {}).tool }}</code> {{ (s.proposal or {}).args }}</p>
+  <p><b>Policy:</b> {{ (s.decision or {}).outcome }} — {{ (s.decision or {}).reason }}</p>
+  {% if r.approval_id %}<p><b>Approval:</b> {{ r.approval_status }} {% if r.approval_status == 'pending' %}(<a href="/ui/approvals">review</a>){% endif %}</p>{% endif %}
+  <p><b>Executed:</b> {% for e in s.executed or [] %}<code>{{ e.action }} {{ e.args }}</code> {% else %}nothing{% endfor %}</p>
+  {% if s.escalation %}<p class="note err">Escalated: {{ s.escalation }}</p>{% endif %}
+  {% if s.reply %}<h3>Draft reply</h3><p>{{ s.reply }}</p>{% endif %}
+  <p class="muted">{{ r.steps }} model steps · {{ r.tokens_in + r.tokens_out }} tokens · ${{ '%.5f' % r.cost_usd }}</p>
+</div>
+<h2>Trace</h2>
+<div class="panel"><pre class="trace">{% for t in (r.summary or {}).trace or [] %}{{ t.node }}{% if t.tool %} → {{ t.tool }}({{ t.args }}){% endif %}{% if t.decision %} → decision: {{ t.decision }} {{ t.args }}{% endif %}{% if t.outcome %} → {{ t.outcome }}: {{ t.reason }}{% endif %}{% if t.result %}
+   ↳ {{ t.result }}{% endif %}
+{% endfor %}</pre></div>
+{% endblock %}

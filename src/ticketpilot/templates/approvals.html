@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Approvals · TicketPilot{% endblock %}
+{% block body %}
+<h1>Approval queue</h1>
+{% if error %}<p class="note err">{{ error }}</p>{% endif %}
+{% if message %}<p class="note ok">{{ message }}</p>{% endif %}
+<div class="panel scroll">
+  {% if items %}
+  <table>
+    <thead><tr><th>Ticket</th><th>Action</th><th>Why it needs you</th><th>Decision</th></tr></thead>
+    <tbody>{% for a in items %}
+      <tr>
+        <td><a href="/ui/runs/{{ a.run_id }}">{{ a.subject }}</a><br><span class="muted">{{ a.customer_email }}</span></td>
+        <td><code>{{ a.action.tool }}</code><br>{% for k, v in a.action.args.items() %}{{ k }}: <b>{{ v }}</b><br>{% endfor %}</td>
+        <td>{{ a.policy_reason }}</td>
+        <td>
+          <form method="post" action="/ui/approvals/{{ a.id }}" style="display:grid;gap:6px">
+            <input name="note" placeholder="note (optional)">
+            <div style="display:flex;gap:6px">
+              <button name="decision" value="approve" type="submit">Approve</button>
+              <button name="decision" value="reject" type="submit" class="danger">Reject</button>
+            </div>
+          </form>
+        </td>
+      </tr>{% endfor %}</tbody>
+  </table>
+  {% else %}<div class="empty">Nothing waiting for approval.</div>{% endif %}
+</div>
+{% endblock %}

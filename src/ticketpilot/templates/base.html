@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}TicketPilot{% endblock %}</title>
+<script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1b1f24; --muted: #5d6673; --line: #e3e6ea;
+    --accent: #2457d6; --ok: #1d7a46; --ok-bg: #e6f4ec; --warn: #9a5b00; --warn-bg: #fdf1dc;
+    --bad: #b42318; --bad-bg: #fde8e6; --info-bg: #eaf0fd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111418; --panel: #1a1e24; --text: #e6e9ee; --muted: #9aa3ae; --line: #2b313a;
+      --accent: #7aa2ff; --ok: #5fd08f; --ok-bg: #16301f; --warn: #f0b860; --warn-bg: #33270f;
+      --bad: #ff8a7a; --bad-bg: #3a1a16; --info-bg: #1a2540;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); }
+  .bar { max-width: 1100px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 16px; }
+  .brand { font-weight: 700; letter-spacing: .2px; color: var(--text); text-decoration: none; }
+  .brand span { color: var(--accent); }
+  .me { margin-left: auto; color: var(--muted); font-size: 13px; display: flex; gap: 10px; align-items: center; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 12px; }
+  h2 { font-size: 16px; margin: 24px 0 8px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  a { color: var(--accent); }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tabs a { padding: 6px 12px; border-radius: 999px; text-decoration: none; color: var(--muted);
+            border: 1px solid var(--line); background: var(--panel); font-size: 13px; }
+  .tabs a.on { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .s-auto_approved, .s-approved { color: var(--ok); background: var(--ok-bg); }
+  .s-needs_review, .s-queued, .s-processing { color: var(--warn); background: var(--warn-bg); }
+  .s-rejected, .s-failed { color: var(--bad); background: var(--bad-bg); }
+  .reason { display: inline-block; margin: 2px 4px 2px 0; padding: 1px 7px; border-radius: 6px;
+            font-size: 12px; font-family: ui-monospace, Consolas, monospace; background: var(--info-bg); }
+  .reason.error { background: var(--bad-bg); color: var(--bad); }
+  .reason.warning { background: var(--warn-bg); color: var(--warn); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .kv dt { color: var(--muted); font-size: 12px; }
+  .kv dd { margin: 0 0 8px; font-weight: 600; }
+  form.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+  label { font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+  input, select, textarea { font: inherit; color: var(--text); background: var(--panel);
+            border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+  textarea { min-width: 280px; }
+  button { font: inherit; border: 1px solid var(--accent); background: var(--accent); color: #fff;
+           border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); }
+  button.danger { background: var(--bad); border-color: var(--bad); }
+  .note { padding: 10px 12px; border-radius: 8px; margin: 0 0 12px; }
+  .note.ok { background: var(--ok-bg); color: var(--ok); }
+  .note.err { background: var(--bad-bg); color: var(--bad); }
+  .muted { color: var(--muted); }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  .scroll { overflow-x: auto; }
+  .hist li { margin-bottom: 4px; }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+  pre.trace { white-space: pre-wrap; font-size: 12.5px; background: var(--bg); padding: 10px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="/ui">Ticket<span>Pilot</span></a> <a href="/ui/approvals" style="margin-left:12px">Approvals</a>
+    {% if me %}
+    <div class="me">
+      <span>{{ me.key_id }} · {{ me.role }}</span>
+      <form method="post" action="/ui/logout"><button class="ghost" type="submit">Sign out</button></form>
+    </div>
+    {% endif %}
+  </div>
+</header>
+<main>{% block body %}{% endblock %}</main>
+</body>
+</html>

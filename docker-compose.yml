@@ -1,0 +1,65 @@
+# Local stack:  docker compose up -d        (db + jaeger + migrate + shopsim + api)
+#               docker compose up -d db     (just Postgres, for tests)
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres  # local only; real credentials live in the host's env vars
+      POSTGRES_DB: app
+    ports: ["127.0.0.1:${DB_PORT:-5436}:5432"]  # 5436: the template stack uses 5433
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  jaeger:
+    image: jaegertracing/jaeger:2.10.0
+    ports:
+      - "127.0.0.1:${JAEGER_UI_PORT:-16689}:16686"  # UI: http://127.0.0.1:16689
+      - "127.0.0.1:${OTLP_PORT:-4321}:4318"         # OTLP/HTTP
+
+  migrate:
+    build: .
+    command: ["sh", "-c", "alembic upgrade head && python -m shopsim.seed"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/app
+      SHOPSIM_DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/app
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
+  shopsim:  # the mock shop backend the agent's tools call (stands in for Shopify/Stripe)
+    build: .
+    command: ["uvicorn", "shopsim.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      SHOPSIM_DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/app
+      SHOPSIM_SERVICE_TOKEN: ${SHOPSIM_TOKEN:-dev-shopsim-token}
+      SHOPSIM_FAILURE_RATE: ${SHOPSIM_FAILURE_RATE:-0}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  api:
+    build: .
+    ports: ["127.0.0.1:${API_PORT:-8005}:8000"]  # http://127.0.0.1:8005/docs
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/app
+      LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-set-me}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      OTEL_ENDPOINT: http://jaeger:4318/v1/traces
+      WORKER_MODE: "off"
+      SHOPSIM_URL: http://shopsim:8000
+      SHOPSIM_TOKEN: ${SHOPSIM_TOKEN:-dev-shopsim-token}
+      BUSINESS_DATE: ${BUSINESS_DATE:-2026-11-10}  # the synthetic shop's "today"
+    depends_on:
+      shopsim: { condition: service_started }
+      db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      jaeger: { condition: service_started }
+
+volumes:
+  pgdata:

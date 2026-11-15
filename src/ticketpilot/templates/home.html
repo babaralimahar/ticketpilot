@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Tickets · TicketPilot{% endblock %}
+{% block body %}
+<h1>Support tickets</h1>
+{% if killed %}<p class="note err">Kill switch is ON: write tools are disabled; every refund or address change escalates to a human.</p>{% endif %}
+<form class="panel" method="post" action="/ui/tickets" style="display:grid;gap:10px;margin-bottom:18px">
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <label>Customer email <input name="email" required value="{{ sample.email }}" size="34"></label>
+    <label>Subject <input name="subject" required value="{{ sample.subject }}" size="36"></label>
+  </div>
+  <label>Message <textarea name="body" rows="3" required style="width:100%">{{ sample.body }}</textarea></label>
+  <div><button type="submit">Submit ticket</button> <span class="muted">The agent runs in the background; refunds over USD 50 wait for a supervisor.</span></div>
+</form>
+<div class="panel scroll">
+  <table>
+    <thead><tr><th>Run</th><th>Customer</th><th>Subject</th><th>Status</th><th>Decision</th><th class="num">Cost</th></tr></thead>
+    <tbody>{% for r in runs %}
+      <tr><td><a href="/ui/runs/{{ r.id }}">{{ r.id[-8:] }}</a></td><td>{{ r.customer_email }}</td><td>{{ r.subject }}</td>
+          <td><span class="pill s-{{ 'approved' if r.status == 'done' else ('needs_review' if r.status in ('awaiting_approval', 'running') else 'rejected') }}">{{ r.status.replace('_', ' ') }}</span></td>
+          <td>{{ r.intent or '—' }}</td><td class="num">${{ '%.4f' % r.cost_usd }}</td></tr>
+    {% else %}<tr><td colspan="6" class="empty">No tickets yet.</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endblock %}
