@@ -17,7 +17,7 @@ COPY --from=builder /app/.venv /app/.venv
 COPY migrations ./migrations
 COPY config ./config
 COPY prompts ./prompts
-COPY alembic.ini ./
+COPY alembic.ini start.sh start-shop.sh ./
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 USER app
 EXPOSE 8000
