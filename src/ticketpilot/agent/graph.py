@@ -24,7 +24,7 @@ from langgraph.types import interrupt
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.adapters.llm import LLMClient, LLMError, LLMResult, complete_with_retries
+from app.adapters.llm import LLMBadRequest, LLMClient, LLMError, LLMResult, complete_with_retries
 from ticketpilot import repo
 from ticketpilot.adapters.shop import ShopClient, ShopError
 from ticketpilot.agent import baseline
@@ -43,7 +43,9 @@ RunStatus = Literal["running", "awaiting_approval", "done", "escalated", "failed
 PROMPTS = Path("prompts")
 _INJECTION = re.compile(
     r"(?i)(ignore\s+(all\s+|any\s+)?(of\s+)?(your\s+|the\s+|my\s+)?(previous\s+|prior\s+|above\s+|earlier\s+)?(instructions|rules)|\bsystem\s*:|you are (an? )?(ai|assistant|bot)"
-    r"|developer mode|act as|override|jailbreak|refund (me )?\$?\d{3,}\b.*(now|immediately)|admin)"
+    r"|developer mode|act as|override|jailbreak|refund (me )?\$?\d{3,}\b.*(now|immediately)|admin"
+    r"|skip (the )?(policy|checks|policy checks|verification)|authori[sz]ed by (your|the) (manager|supervisor|admin|owner)"
+    r"|as the (store |shop )?owner|new instruction)"
 )
 
 
@@ -133,16 +135,31 @@ def build_graph(
                 return stop("token budget exhausted")
             if time.monotonic() - started > s.deadline_s:
                 return stop("deadline exceeded")
-            try:
-                res = await complete_with_retries(
-                    deps.llm,
-                    s.llm_max_attempts,
-                    prompt_version=s.prompt_version,
-                    messages=messages,
-                    tools=tool_schemas,
-                )
-            except LLMError as e:
-                return {**stop(f"model unavailable: {type(e).__name__}"), "status": "failed"}
+            res = None
+            for attempt in range(
+                2
+            ):  # one resend: some providers reject a malformed tool call with 400
+                try:
+                    res = await complete_with_retries(
+                        deps.llm,
+                        s.llm_max_attempts,
+                        prompt_version=s.prompt_version,
+                        messages=messages,
+                        tools=tool_schemas,
+                    )
+                    break
+                except LLMBadRequest as e:
+                    if attempt == 1:
+                        return {
+                            **stop(f"model unavailable: {type(e).__name__}: {str(e)[:160]}"),
+                            "status": "failed",
+                        }
+                except LLMError as e:
+                    return {
+                        **stop(f"model unavailable: {type(e).__name__}: {str(e)[:160]}"),
+                        "status": "failed",
+                    }
+            assert res is not None  # noqa: S101
             upd["usage"] = _usage(upd, res, step=True)
             calls = res.tool_calls
             if not calls:
@@ -224,6 +241,22 @@ def build_graph(
         if tool == "escalate":
             return {
                 "decision": {"outcome": "deny", "reason": args.get("reason", ""), "action": tool}
+            }
+        if (state.get("flags") or {}).get("injection_suspected") and tool in (
+            "propose_refund",
+            "propose_address_change",
+        ):
+            # Deterministic guard: text that tries to instruct the agent never triggers a write,
+            # whatever the model concluded. A human looks at it instead.
+            return {
+                "decision": {
+                    "outcome": "deny",
+                    "reason": "possible prompt injection in the ticket: routed to a human",
+                    "action": tool,
+                },
+                "trace": _trace(
+                    state, node="policy_check", outcome="deny", reason="injection_suspected"
+                ),
             }
         if tool == "no_action_needed":
             facts: dict[str, Any] = {}

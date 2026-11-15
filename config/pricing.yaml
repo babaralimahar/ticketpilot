@@ -28,3 +28,7 @@ models:
   gemini-3.8-flash:
     input: 0.75
     output: 3.75
+  # Groq free tier (2026-11-15): $0 actually spent. Limits per model: 1,000 requests/day,
+  # 8,000 tokens/minute. Token counts are still reported, so cost at paid rates can be derived.
+  openai/gpt-oss-120b: {input: 0, output: 0}
+  openai/gpt-oss-20b: {input: 0, output: 0}
