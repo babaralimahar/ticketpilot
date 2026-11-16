@@ -2,4 +2,5 @@
 # Container start for single-service hosts (Render free has no pre-deploy hook).
 set -e
 alembic upgrade head  # idempotent
+python -m ticketpilot.checkpoint_setup  # before serving: see the module docstring
 exec uvicorn ticketpilot.main:create_app --factory --host 0.0.0.0 --port "${PORT:-8000}" --no-access-log --timeout-graceful-shutdown 20
