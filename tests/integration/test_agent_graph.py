@@ -401,7 +401,17 @@ async def test_one_malformed_tool_call_400_is_resent(
     assert out["status"] == "done" and len(await refunds(engine)) == 1
 
 
-async def test_two_400s_fail_cleanly_with_the_reason(make_runner: MakeRunner) -> None:
+async def test_three_malformed_400s_then_success(
+    make_runner: MakeRunner, engine: AsyncEngine
+) -> None:
+    bad = LLMBadRequest("HTTP 400: tool_use_failed")
+    llm = ScriptedLLM(bad, bad, bad, refund("20001", "18.00"),
+                      reply("Sorry about the mug. We refunded $18.00 for order 20001."))  # fmt: skip
+    out = (await make_runner(llm).submit(ticket()))[2]
+    assert out["status"] == "done" and len(await refunds(engine)) == 1
+
+
+async def test_repeated_400s_fail_cleanly_with_the_reason(make_runner: MakeRunner) -> None:
     out = (
         await make_runner(ScriptedLLM(LLMBadRequest("HTTP 400: tool_use_failed"))).submit(ticket())
     )[2]

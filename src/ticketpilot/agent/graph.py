@@ -41,6 +41,7 @@ from ticketpilot.domain.policy import Order, Policy, Shipment, decide_address, d
 
 RunStatus = Literal["running", "awaiting_approval", "done", "escalated", "failed"]
 PROMPTS = Path("prompts")
+BAD_REQUEST_ATTEMPTS = 4
 _INJECTION = re.compile(
     r"(?i)(ignore\s+(all\s+|any\s+)?(of\s+)?(your\s+|the\s+|my\s+)?(previous\s+|prior\s+|above\s+|earlier\s+)?(instructions|rules)|\bsystem\s*:|you are (an? )?(ai|assistant|bot)"
     r"|developer mode|act as|override|jailbreak|refund (me )?\$?\d{3,}\b.*(now|immediately)|admin"
@@ -136,9 +137,9 @@ def build_graph(
             if time.monotonic() - started > s.deadline_s:
                 return stop("deadline exceeded")
             res = None
-            for attempt in range(
-                2
-            ):  # one resend: some providers reject a malformed tool call with 400
+            # Groq's gpt-oss sometimes emits a malformed tool call, which the provider rejects with
+            # 400. The output is sampled, so a resend usually succeeds; give up after 3 resends.
+            for attempt in range(BAD_REQUEST_ATTEMPTS):
                 try:
                     res = await complete_with_retries(
                         deps.llm,
@@ -149,7 +150,7 @@ def build_graph(
                     )
                     break
                 except LLMBadRequest as e:
-                    if attempt == 1:
+                    if attempt == BAD_REQUEST_ATTEMPTS - 1:
                         return {
                             **stop(f"model unavailable: {type(e).__name__}: {str(e)[:160]}"),
                             "status": "failed",
