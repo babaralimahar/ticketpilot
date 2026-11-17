@@ -17,6 +17,7 @@ class TicketSettings(Settings):
     shopsim_url: str = "http://127.0.0.1:8006"
     shopsim_token: str = "dev-shopsim-token"  # noqa: S105  (dev default; set SHOPSIM_TOKEN in prod)
     shop_timeout_s: float = Field(3.0, gt=0)
+    shop_wake_s: float = Field(0.0, ge=0)  # >0 on hosts that sleep idle services
 
     # Agent budgets (F1): every run ends in a defined state, never an exception.
     max_steps: int = Field(8, ge=1, le=20)

@@ -42,6 +42,10 @@ from ticketpilot.domain.policy import Order, Policy, Shipment, decide_address, d
 RunStatus = Literal["running", "awaiting_approval", "done", "escalated", "failed"]
 PROMPTS = Path("prompts")
 BAD_REQUEST_ATTEMPTS = 4
+REPEAT_HINT = (
+    " You already made this exact call and the result is unchanged. Do not repeat it: "
+    "use what you have and decide."
+)
 _INJECTION = re.compile(
     r"(?i)(ignore\s+(all\s+|any\s+)?(of\s+)?(your\s+|the\s+|my\s+)?(previous\s+|prior\s+|above\s+|earlier\s+)?(instructions|rules)|\bsystem\s*:|you are (an? )?(ai|assistant|bot)"
     r"|developer mode|act as|override|jailbreak|refund (me )?\$?\d{3,}\b.*(now|immediately)|admin"
@@ -212,7 +216,8 @@ def build_graph(
                         "role": "tool",
                         "tool_call_id": call_id,
                         "name": name,
-                        "content": f"<tool_result>{out}</tool_result>",
+                        "content": f"<tool_result>{out}</tool_result>"
+                        + (REPEAT_HINT if seen[key] == 2 else ""),
                     }
                 )
 

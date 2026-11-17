@@ -109,3 +109,23 @@ def test_model_only_sees_read_and_propose_tools() -> None:
     names = {s["function"]["name"] for s in openai_tool_schemas()}
     assert names == set(TOOLS)
     assert not any("create" in n or "update" in n for n in names)
+
+
+async def test_shop_wake_waits_through_502s() -> None:
+    """Free hosts answer 502 while a sleeping service boots; wake() waits until it is up."""
+    import httpx
+
+    from ticketpilot.adapters.shop import ShopClient
+
+    codes = iter([502, 502, 200])
+    transport = httpx.MockTransport(lambda req: httpx.Response(next(codes)))
+    shop = ShopClient("http://shop", "t", transport=transport)
+    import ticketpilot.adapters.shop as mod
+
+    real_sleep = mod.asyncio.sleep
+    mod.asyncio.sleep = lambda s: real_sleep(0)  # type: ignore[assignment]
+    try:
+        assert await shop.wake(60) is True
+    finally:
+        mod.asyncio.sleep = real_sleep  # type: ignore[assignment]
+        await shop.aclose()

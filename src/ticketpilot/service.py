@@ -39,6 +39,9 @@ class Runner:
 
     async def _invoke(self, run_id: str, inp: Any) -> RunState:
         cfg: RunnableConfig = {"configurable": {"thread_id": run_id}, "recursion_limit": 30}
+        wake_s = self.deps.settings.shop_wake_s
+        if wake_s and not await self.deps.shop.wake(wake_s):
+            log.warning("shop_still_asleep", run_id=run_id)  # the tools report the error
         try:
             out: dict[str, Any] = await self.graph.ainvoke(inp, cfg)
         except Exception:  # never leave a run in limbo

@@ -3,6 +3,8 @@ retrying after a timeout or a 5xx can never create a second refund."""
 
 from __future__ import annotations
 
+import asyncio
+import time
 from decimal import Decimal
 from typing import Any
 
@@ -46,6 +48,21 @@ class ShopClient:
 
     async def aclose(self) -> None:
         await self._http.aclose()
+
+    async def wake(self, max_wait_s: float) -> bool:
+        """Wait until the shop answers /healthz. Free hosts put idle services to sleep and answer
+        502 while they boot (up to about a minute). Returns False if it is still down."""
+        deadline = time.monotonic() + max_wait_s
+        while True:
+            try:
+                r = await self._http.get("/healthz", timeout=min(30.0, max_wait_s))
+                if r.status_code == 200:
+                    return True
+            except httpx.HTTPError:
+                pass
+            if time.monotonic() >= deadline:
+                return False
+            await asyncio.sleep(3)
 
     async def _call(
         self, method: str, path: str, *, json: Any = None, key: str | None = None
