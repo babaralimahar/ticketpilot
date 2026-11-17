@@ -2,7 +2,9 @@
 
 Target: **Render free web services** (Docker) + **Neon Postgres**, the same as P1/P2.
 
-> Status: **not deployed yet.** All five projects get deployed together at the end.
+> Status: **live.** Agent API https://ticketpilot-api-lcf9.onrender.com and mock shop
+> https://ticketpilot-e331.onrender.com (Render free, Singapore), one Neon free database. The shop
+> was seeded from a local machine. `SHOP_WAKE_S=90` makes the agent wait for the sleeping shop.
 
 TicketPilot needs two services from the same image: the **API** (`ticketpilot.main`) and the
 **mock shop** (`shopsim.app`) that the agent's tools call. In a real deployment, shopsim is

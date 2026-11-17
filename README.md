@@ -2,6 +2,11 @@
 
 **A customer-support agent that is allowed to touch money, with guardrails you can test.**
 
+**Live demo:** https://ticketpilot-api-lcf9.onrender.com/ui (free hosting: the first ticket after
+idling can take about a minute while the services wake up). Demo agent and supervisor keys on
+request. The agent runs on Groq's free tier, so it may hand a ticket to a human when the daily
+limit is used up.
+
 An e-commerce support ticket comes in ("my mug arrived broken, order 10021"). TicketPilot reads
 the customer's orders, decides what should happen (refund, address change, answer, or hand to a
 human), executes it against the shop's API, and drafts the reply. The model **reads and
@@ -90,7 +95,7 @@ run trace, supervisor approval queue.
 
 - [ADR 0005: the LLM proposes, code decides](docs/adr/0005-llm-proposes-code-decides.md)
 - [Threat model](docs/THREAT_MODEL.md)
-- [Deployment](docs/DEPLOYMENT.md) (not deployed yet)
+- [Deployment](docs/DEPLOYMENT.md) (live on Render free + Neon free)
 
 **Limits, stated plainly:** the shop is a simulator; tickets are synthetic and English-only; the
 reply-QA checks numbers and claims but not tone; a run interrupted mid-flight by a server crash
